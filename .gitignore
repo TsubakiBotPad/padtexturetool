@@ -1,0 +1,9 @@
+*.whl
+*.pyc
+
+.idea/*
+
+dist/*
+build/*
+tsutils.egg-info/*
+.DS_Store
