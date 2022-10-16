@@ -8,17 +8,17 @@ Example Usage
 
 You can use the Puzzle & Dragons Texture Tool to extract texture data from Puzzle & Dragons' .apk file. For example:
 
-`python PADTextureTool.py padEN.apk`
+`python -m padtexturetool padEN.apk`
 
 You can also use it to extract monster textures from .bc files you download from your phone:
 
-`python PADTextureTool.py mons_1262.bc`
+`python -m padtexturetool mons_1262.bc`
 
 By default, the Puzzle & Dragons Texture Tool writes any extracted textures into the same directory as the input file. You can use the `--outdir` argument to specify an output folder of your choosing:
 
-`python PADTextureTool.py mons_1262.bc --outdir "Extracted Textures"`
+`python -m padtexturetool mons_1262.bc --outdir "Extracted Textures"`
 
 Acknowledgements
 ------
 
-Special thanks to Johann C. Rocholl who wrote the open-source [PyPNG](https://pythonhosted.org/pypng/index.html) library which the Puzzle & Dragons Texture Tool uses to output PNG files.
+Special thanks to Johann C. Rocholl who wrote the open-source [PyPNG](https://pythonhosted.org/pypng/index.html) library which the Puzzle & Dragons Texture Tool uses to output PNG files and to Cody Watts who wrote the original version of this library.
