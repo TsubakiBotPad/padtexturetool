@@ -46,7 +46,7 @@ def do_extract(settings):
                 file_contents = binary_file.read()
 
         logging.debug("\nReading {}... ".format(input_file_path))
-        textures = list(extract_textures_from_binary_blob(file_contents, input_file_path))
+        textures = list(extract_textures_from_binary_blob(file_contents))
         logging.debug("{} texture{} found.\n".format(str(len(textures)) if any(textures) else "No",
                                                      "" if len(textures) == 1 else "s"))
 
@@ -66,7 +66,7 @@ def do_extract(settings):
                 output_file_name = os.path.basename(input_file_path) + '_' + output_file_name
 
             logging.debug(f"Writing {output_file_name} ({texture.width} x {texture.height})...")
-            if texture.encoding in [PVRTC2BPP, PVRTC4BPP]:
+            if texture.encoding in (PVRTC2BPP, PVRTC4BPP):
                 logging.warning(
                     f"{output_file_name} is encoded using PVR texture compression."
                     " This format is not yet supported by the Puzzle & Dragons Texture Tool.")
