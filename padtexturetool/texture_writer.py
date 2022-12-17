@@ -15,12 +15,13 @@ for current_bit_depth in range(1, 9):
             bit_depth_conversion_table[current_bit_depth][new_bit_depth][value] = int(
                 round(value * (float((2 ** new_bit_depth) - 1) / float((2 ** current_bit_depth) - 1))))
 
-penultimate_chunk = struct.pack("<H32L", 0x0, 0x45747600, 0x6F537458, 0x61777466, 0x45006572, 0x726F7078, 0x20646574,
-                                0x6E697375, 0x68742067, 0x75502065, 0x656C7A7A, 0x44202620, 0x6F676172, 0x5420736E,
-                                0x75747865,
-                                0x54206572, 0x206C6F6F, 0x77777728, 0x646F632E, 0x74617779, 0x632E7374, 0x702F6D6F,
-                                0x656A6F72, 0x2F737463, 0x7A7A7570, 0x612D656C, 0x642D646E, 0x6F676172, 0x742D736E,
-                                0x75747865, 0x742D6572, 0x296C6F6F, 0x3391286F)
+# TODO: Make this say b'\x00\x00\x00vtEXtSoftware\x00Exported using the Puzzle & Dragons Texture Tool! (https://github.com/TsubakiBotPad/padtexturetool)o(\x913'
+penultimate_chunk = struct.pack("<H32L", 0x0, 0x45747600, 0x6f537458, 0x61777466, 0x45006572, 0x726f7078, 0x20646574,
+                                0x6e697375, 0x6f432067, 0x57207964, 0x27747461, 0x75502073, 0x656c7a7a, 0x44202620,
+                                0x6f676172,
+                                0x5420736e, 0x75747865, 0x54206572, 0x216c6f6f, 0x28202121, 0x70747468, 0x2f2f3a73,
+                                0x68746967, 0x632e6275, 0x542f6d6f, 0x61627573, 0x6f42696b, 0x64615074, 0x6461702f,
+                                0x74786574, 0x74657275, 0x296c6f6f, 0x3391286f)
 
 
 def trim_transparent_edges(flat_pixel_array, width, height, channels, given_width, given_height):
