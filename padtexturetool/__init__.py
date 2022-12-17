@@ -1,5 +1,5 @@
-from extract import do_extract as _do_extract
-from settings import Settings as _Settings
+from .extract import do_extract as _do_extract
+from .settings import Settings as _Settings
 
 
 def extract(in_path: str, out_dir: str, *,

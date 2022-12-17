@@ -4,8 +4,8 @@ import struct
 import zlib
 from typing import List
 
-from encoding import *
-from texture import Texture
+from .encoding import *
+from .texture import Texture
 
 encrypted_texture_magic_string = struct.pack("<5B", 0x49, 0x4F, 0x53, 0x43, 0x68)  # "IOSCh"
 encrypted_texture_header_format = "<5sBxxxxxx"

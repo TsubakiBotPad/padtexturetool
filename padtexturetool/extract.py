@@ -4,9 +4,9 @@ import re
 import zipfile
 from pathlib import Path
 
-from encoding import *
-from texture_reader import extract_textures_from_binary_blob
-from texture_writer import export_to_image_file
+from .encoding import *
+from .texture_reader import extract_textures_from_binary_blob
+from .texture_writer import export_to_image_file
 
 MONSTER_NAME_REGEX = re.compile(r'^(MONS_)(\d+)(\..+)$', flags=re.IGNORECASE)
 
