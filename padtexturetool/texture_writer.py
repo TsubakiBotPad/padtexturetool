@@ -6,7 +6,7 @@ import struct
 
 import png
 
-from encoding import *
+from .encoding import *
 
 bit_depth_conversion_table = [[[0 for i in range(256)] for j in range(9)] for k in range(9)]
 for current_bit_depth in range(1, 9):
