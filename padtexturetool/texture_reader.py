@@ -68,6 +68,7 @@ def extract_textures_from_binary_blob(binary_blob: bytes) -> List[Texture]:
 
     offset = 0x0
     textures = []
+    is_animated = False
     while (offset + texture_block_header_size) < len(binary_blob):
         magic_string, number_of_textures_in_block = struct.unpack_from(texture_block_header_format, binary_blob, offset)
         if magic_string == unencrypted_texture_magic_string:
@@ -127,9 +128,7 @@ def extract_textures_from_binary_blob(binary_blob: bytes) -> List[Texture]:
                     given_width, given_height = width, height
                 textures.append(Texture(width, height, name, binary_blob[image_data_start:image_data_end], encoding,
                                         min(width, given_width), min(height, given_height)))
-        elif magic_string == "ISC":  # TODO: Do this right
-            for c, tex in enumerate(textures):
-                tex.name = f"{c:03}.PNG"
-            break
+        elif magic_string == "ISC":
+            is_animated = True
         offset += texture_block_header_alignment
-    return textures
+    return textures, is_animated
