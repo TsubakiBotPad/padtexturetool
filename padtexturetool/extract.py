@@ -50,14 +50,14 @@ def do_extract(settings):
         logging.debug("{} texture{} found.\n".format(str(len(textures)) if any(textures) else "No",
                                                      "" if len(textures) == 1 else "s"))
 
-        if not settings.subtextures_enabled:
-            if len(textures) > 1 or '000.PNG' in textures[0].name:
-                logging.debug("Skipping; subtextures not enabled")
-                input_file_without_extension, _ = os.path.splitext(input_file_path)
-                # Create a tag file that marks this as being animated. This is used elsewhere
-                # to determine if we need to extract a video.
-                Path(input_file_without_extension + '.isanimated').touch()
-                exit()
+        if not settings.subtextures_enabled and is_animated:
+            logging.info("Skipping; subtextures not enabled")
+            input_file_without_extension, _ = os.path.splitext(input_file_path)
+            # Create a tag file that marks this as being animated. This is used elsewhere
+            # to determine if we need to extract a video.
+            # This is currently unused
+            # Path(input_file_without_extension + '.isanimated').touch()
+            return
 
         files_written = {}
         for texture in textures:

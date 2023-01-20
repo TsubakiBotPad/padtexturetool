@@ -2,7 +2,7 @@ import logging
 import re
 import struct
 import zlib
-from typing import List
+from typing import List, Tuple
 
 from .encoding import *
 from .texture import Texture
@@ -63,7 +63,7 @@ def decrypt_and_decompress_binary_blob(binary_blob: bytes) -> bytes:
     return binary_blob
 
 
-def extract_textures_from_binary_blob(binary_blob: bytes) -> List[Texture]:
+def extract_textures_from_binary_blob(binary_blob: bytes) -> Tuple[List[Texture], bool]:
     binary_blob = decrypt_and_decompress_binary_blob(binary_blob)
 
     offset = 0x0
@@ -127,9 +127,7 @@ def extract_textures_from_binary_blob(binary_blob: bytes) -> List[Texture]:
                     given_width, given_height = width, height
                 textures.append(Texture(width, height, name, binary_blob[image_data_start:image_data_end], encoding,
                                         min(width, given_width), min(height, given_height)))
-        elif magic_string == "ISC":  # TODO: Do this right
-            for c, tex in enumerate(textures):
-                tex.name = f"{c:03}.PNG"
-            break
+        elif magic_string == b"ISC":
+            is_animated = True
         offset += texture_block_header_alignment
     return textures
