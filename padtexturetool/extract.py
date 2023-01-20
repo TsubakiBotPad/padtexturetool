@@ -55,7 +55,8 @@ def do_extract(settings):
             input_file_without_extension, _ = os.path.splitext(input_file_path)
             # Create a tag file that marks this as being animated. This is used elsewhere
             # to determine if we need to extract a video.
-            Path(input_file_without_extension + '.isanimated').touch()
+            # This is currently unused
+            # Path(input_file_without_extension + '.isanimated').touch()
             return
 
         files_written = {}
