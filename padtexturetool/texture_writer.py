@@ -2,11 +2,13 @@
 import io
 import itertools
 import os
-import struct
-
 import png
 
+from crc import Calculator, Crc32
+
 from .encoding import *
+
+CRC32 = Calculator(Crc32.CRC32.value)
 
 bit_depth_conversion_table = [[[0 for i in range(256)] for j in range(9)] for k in range(9)]
 for current_bit_depth in range(1, 9):
@@ -15,13 +17,7 @@ for current_bit_depth in range(1, 9):
             bit_depth_conversion_table[current_bit_depth][new_bit_depth][value] = int(
                 round(value * (float((2 ** new_bit_depth) - 1) / float((2 ** current_bit_depth) - 1))))
 
-# TODO: Make this say b'\x00\x00\x00vtEXtSoftware\x00Exported using the Puzzle & Dragons Texture Tool! (https://github.com/TsubakiBotPad/padtexturetool)o(\x913'
-penultimate_chunk = struct.pack("<H32L", 0x0, 0x45747600, 0x6f537458, 0x61777466, 0x45006572, 0x726f7078, 0x20646574,
-                                0x6e697375, 0x6f432067, 0x57207964, 0x27747461, 0x75502073, 0x656c7a7a, 0x44202620,
-                                0x6f676172,
-                                0x5420736e, 0x75747865, 0x54206572, 0x216c6f6f, 0x28202121, 0x70747468, 0x2f2f3a73,
-                                0x68746967, 0x632e6275, 0x542f6d6f, 0x61627573, 0x6f42696b, 0x64615074, 0x6461702f,
-                                0x74786574, 0x74657275, 0x296c6f6f, 0x3391286f)
+software_text = b'Exported using the Puzzle & Dragons Texture Tool! (https://github.com/TsubakiBotPad/padtexturetool)'
 
 
 def trim_transparent_edges(flat_pixel_array, width, height, channels, given_width, given_height):
@@ -30,7 +26,8 @@ def trim_transparent_edges(flat_pixel_array, width, height, channels, given_widt
     # Isolate the image's alpha channel
     alpha_channel = flat_pixel_array[(channels_per_pixel - 1)::channels_per_pixel]
 
-    get_row = (lambda row_index, pixel_array, row_stride: pixel_array[row_index * row_stride:(row_index + 1) * row_stride])
+    get_row = (
+        lambda row_index, pixel_array, row_stride: pixel_array[row_index * row_stride:(row_index + 1) * row_stride])
     get_column = (lambda column_index, pixel_array, row_stride: pixel_array[column_index::row_stride])
     is_transparent = (lambda row_or_column: sum(row_or_column) == 0)
 
@@ -50,7 +47,7 @@ def trim_transparent_edges(flat_pixel_array, width, height, channels, given_widt
     row_edges = (left, left + trimmed_width)
     row_offsets = (row_index * width for row_index in range(top, top + trimmed_height))
     row_boundaries = (tuple(((edge + offset) * channels_per_pixel)
-                           for edge in row_edges) for offset in row_offsets)
+                            for edge in row_edges) for offset in row_offsets)
     trimmed_rows = (flat_pixel_array[row_start: row_end] for row_start, row_end in row_boundaries)
     trimmed_pixels = list(itertools.chain(*trimmed_rows))
 
@@ -72,16 +69,17 @@ def blacken_transparent_pixels(flat_pixel_array, width, height, channels):
 
 def unpack_pixels(texture, target_bit_depth):
     bits_per_channel = texture.encoding.channels
-    bit_shifts = [sum(bits_per_channel[channel_index + 1:])
-                 for channel_index, channel_bit_count in enumerate(bits_per_channel)]
-    bit_masks = [(((2 ** bit_count) - 1) << bit_shift)
-                for bit_count, bit_shift in zip(bits_per_channel, bit_shifts)]
-    conversion_tables = [bit_depth_conversion_table[current_bit_count]
-                        [target_bit_depth] for current_bit_count in bits_per_channel]
-    zipped_channel_info = list(zip(bit_shifts, bit_masks, conversion_tables))
 
-    return [conversion_table[(packed_pixel_value & bit_mask) >> bit_shift] for packed_pixel_value in texture.packed_pixels
-            for bit_shift, bit_mask, conversion_table in zipped_channel_info]
+    bit_shifts = [sum(bits_per_channel[channel_index + 1:])
+                  for channel_index, channel_bit_count in enumerate(bits_per_channel)]
+    bit_masks = [(((2 ** bit_count) - 1) << bit_shift)
+                 for bit_count, bit_shift in zip(bits_per_channel, bit_shifts)]
+    conversion_tables = [bit_depth_conversion_table[current_bit_count][target_bit_depth]
+                         for current_bit_count in bits_per_channel]
+
+    return [conversion_table[(packed_pixel_value & bit_mask) >> bit_shift]
+            for packed_pixel_value in texture.packed_pixels
+            for bit_shift, bit_mask, conversion_table in zip(bit_shifts, bit_masks, conversion_tables)]
 
 
 def export_to_image_file(texture, output_file_path, settings):
@@ -121,7 +119,7 @@ def export_to_image_file(texture, output_file_path, settings):
 
                 palette.sort(key=get_alpha_value)
                 color_to_index = dict((color, palette_index)
-                                    for palette_index, color in enumerate(palette))
+                                      for palette_index, color in enumerate(palette))
                 palette_index_array = [color_to_index[color] for color in pixels]
 
                 # Remove alpha from opaque pixels
@@ -138,13 +136,16 @@ def export_to_image_file(texture, output_file_path, settings):
             else:
                 # Write the png data to the stream.
                 png_writer = png.Writer(width, height, alpha=texture.encoding.has_alpha,
-                                       greyscale=texture.encoding.is_greyscale,
-                                       bitdepth=target_bit_depth, planes=len(texture.encoding.channels))
+                                        greyscale=texture.encoding.is_greyscale,
+                                        bitdepth=target_bit_depth, planes=len(texture.encoding.channels))
                 png_writer.write_array(png_stream, flat_pixel_array)
 
             # Add the penultimate chunk.
             final_chunk_size = 12
             png_file_byte_array = bytearray(png_stream.getvalue())
+            # Turn the text into a PNG tEXt chunk (size + data + checksum)
+            data = b'tEXtSoftware\0' + software_text
+            penultimate_chunk = (len(data)-4).to_bytes(4, 'big') + data + CRC32.checksum(data).to_bytes(4, 'big')
             binary_file_data = bytes(
                 png_file_byte_array[:-final_chunk_size]) + penultimate_chunk + bytes(
                 png_file_byte_array[-final_chunk_size:])

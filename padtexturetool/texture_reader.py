@@ -68,6 +68,7 @@ def extract_textures_from_binary_blob(binary_blob: bytes) -> Tuple[List[Texture]
 
     offset = 0x0
     textures = []
+    is_animated = False
     while (offset + texture_block_header_size) < len(binary_blob):
         magic_string, number_of_textures_in_block = struct.unpack_from(texture_block_header_format, binary_blob, offset)
         if magic_string == unencrypted_texture_magic_string:
@@ -130,4 +131,4 @@ def extract_textures_from_binary_blob(binary_blob: bytes) -> Tuple[List[Texture]
         elif magic_string == b"ISC":
             is_animated = True
         offset += texture_block_header_alignment
-    return textures
+    return textures, is_animated

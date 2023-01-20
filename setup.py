@@ -15,7 +15,8 @@ setuptools.setup(
     url="https://github.com/TsubakiBotPad/padtexturetool",
     packages=setuptools.find_packages(),
     install_requires=[
-        "pypng==0.0.20"
+        "pypng==0.0.20",
+        "crc"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
