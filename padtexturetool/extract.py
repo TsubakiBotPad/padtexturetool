@@ -45,19 +45,18 @@ def do_extract(settings):
             with open(input_file_path, 'rb') as binary_file:
                 file_contents = binary_file.read()
 
-        logging.debug("\nReading {}... ".format(input_file_path))
-        textures = list(extract_textures_from_binary_blob(file_contents))
-        logging.debug("{} texture{} found.\n".format(str(len(textures)) if any(textures) else "No",
-                                                     "" if len(textures) == 1 else "s"))
+        logging.info("\nReading {}... ".format(input_file_path))
+        textures, is_animated = list(extract_textures_from_binary_blob(file_contents))
+        logging.info("{} texture{} found.\n".format(str(len(textures)) if any(textures) else "No",
+                                                    "" if len(textures) == 1 else "s"))
 
-        if not settings.subtextures_enabled:
-            if len(textures) > 1 or '000.PNG' in textures[0].name:
-                logging.debug("Skipping; subtextures not enabled")
-                input_file_without_extension, _ = os.path.splitext(input_file_path)
-                # Create a tag file that marks this as being animated. This is used elsewhere
-                # to determine if we need to extract a video.
-                Path(input_file_without_extension + '.isanimated').touch()
-                exit()
+        if not settings.subtextures_enabled and is_animated:
+            logging.info("Skipping; subtextures not enabled")
+            input_file_without_extension, _ = os.path.splitext(input_file_path)
+            # Create a tag file that marks this as being animated. This is used elsewhere
+            # to determine if we need to extract a video.
+            Path(input_file_without_extension + '.isanimated').touch()
+            return
 
         files_written = {}
         for texture in textures:
@@ -65,7 +64,7 @@ def do_extract(settings):
             if len(textures) > 1:
                 output_file_name = os.path.basename(input_file_path) + '_' + output_file_name
 
-            logging.debug(f"Writing {output_file_name} ({texture.width} x {texture.height})...")
+            logging.info(f"Writing {output_file_name} ({texture.width} x {texture.height})...")
             if texture.encoding in (PVRTC2BPP, PVRTC4BPP):
                 logging.warning(
                     f"{output_file_name} is encoded using PVR texture compression."
