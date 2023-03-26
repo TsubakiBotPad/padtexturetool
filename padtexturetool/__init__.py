@@ -3,6 +3,5 @@ from .settings import Settings as _Settings
 
 
 def extract(in_path: str, out_dir: str, *,
-            trimming: bool = True, blackening: bool = True, subtextures: bool = False):
-    settings = _Settings(in_path, out_dir, trimming, blackening, subtextures)
-    _do_extract(settings)
+            trimming: bool = True, blackening: bool = True, animations: bool = False):
+    _do_extract(_Settings(in_path, out_dir, trimming, blackening, animations))
