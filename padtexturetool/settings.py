@@ -5,7 +5,7 @@ import os
 class Settings:
     """A group of user-configurable settings which control how the script operates."""
 
-    def __init__(self, input_path=None, output_dir=None, trimming=True, blackening=True, subtextures=False):
+    def __init__(self, input_path=None, output_dir=None, trimming=True, blackening=True, animations=False):
         self._input_files = []
         self._output_directory = None
 
@@ -13,7 +13,8 @@ class Settings:
         self.set_output_directory(output_dir)
         self._trimming_enabled = trimming
         self._blackening_enabled = blackening
-        self._subtextures_enabled = subtextures
+        self._animations_enabled = animations
+        self._rename_enabled = animations
 
     @property
     def input_files(self):
@@ -54,11 +55,18 @@ class Settings:
         self._blackening_enabled = value
 
     @property
-    def subtextures_enabled(self):
-        return self._subtextures_enabled
+    def animations_enabled(self):
+        return self._animations_enabled
 
-    def set_subtextures_enabled(self, value):
-        self._subtextures_enabled = value
+    def set_animations_enabled(self, value):
+        self._animations_enabled = value
+
+    @property
+    def rename_enabled(self):
+        return self._rename_enabled
+
+    def set_rename_enabled(self, value):
+        self._rename_enabled = value
 
 
 def get_settings_from_command_line():
@@ -95,8 +103,10 @@ def get_settings_from_command_line():
     features_group.add_argument("-nb", "--noblacken", nargs=0,
                                 help="By default, this script will \"blacken\" (i.e. set the red, green and blue channels to zero) any fully-transparent pixels of an image before exporting it. This reduces file size in a way that does not affect the quality of the image. Use this flag to disable automatic blackening.",
                                 action=call(settings.set_blackening_enabled, False))
-    features_group.add_argument("--subtextures", nargs=0, help="Enables extracting monsters with multiple textures",
-                                action=call(settings.set_subtextures_enabled, True))
+    features_group.add_argument("--animations", nargs=0, help="Enables extracting monsters with multiple textures",
+                                action=call(settings.set_animations_enabled, True))
+    features_group.add_argument("--rename", nargs=0, help="Rename animated files to old-style",
+                                action=call(settings.set_rename_enabled, True))
 
     help_group = parser.add_argument_group("Help")
     help_group.add_argument("-h", "--help", action="help",
