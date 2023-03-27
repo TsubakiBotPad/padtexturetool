@@ -63,7 +63,7 @@ def do_extract(settings):
         files_written = {}
         for c, texture in enumerate(textures, 1):
             output_file_name = get_output_file_name(texture.name, files_written)
-            if len(textures) > 1 and settings.rename_enabled:
+            if is_animated and settings.rename_enabled:
                 try:
                     mid = int(re.search(r'\d+', basename).group())
                 except AttributeError:
