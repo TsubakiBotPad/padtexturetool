@@ -92,21 +92,25 @@ def get_settings_from_command_line():
                        action=call(settings.set_input_path))
 
     output_group = parser.add_argument_group("Output")
-    output_group.add_argument("-o", "--outdir", metavar="OUT_DIR",
+    output_group.add_argument("--outdir", "-o", metavar="OUT_DIR",
                               help="A path to a folder where extracted textures should be saved. This property is optional; by default, any extracted texture files will be saved in the same directory as the file from which they were extracted.",
                               action=call(settings.set_output_directory))
 
     features_group = parser.add_argument_group("Optional Features")
-    features_group.add_argument("-nt", "--notrim", nargs=0,
+    features_group.add_argument("--notrim", "-nt", nargs=0,
                                 help="Puzzle & Dragons' textures are padded with empty space, which this script automatically removes before writing the texture to disk. Use this flag to disable automatic trimming.",
                                 action=call(settings.set_trimming_enabled, False))
-    features_group.add_argument("-nb", "--noblacken", nargs=0,
+    features_group.add_argument("--noblacken", "-nb", nargs=0,
                                 help="By default, this script will \"blacken\" (i.e. set the red, green and blue channels to zero) any fully-transparent pixels of an image before exporting it. This reduces file size in a way that does not affect the quality of the image. Use this flag to disable automatic blackening.",
                                 action=call(settings.set_blackening_enabled, False))
     features_group.add_argument("--animations", nargs=0, help="Enables extracting monsters with multiple textures",
                                 action=call(settings.set_animations_enabled, True))
     features_group.add_argument("--rename", nargs=0, help="Rename animated files to old-style",
                                 action=call(settings.set_rename_enabled, True))
+
+    settings_group = parser.add_argument_group("Settings")
+    settings_group.add_argument('--quick-decode', action='store_true',
+                                help='Just decrypt files without pulling textures')
 
     help_group = parser.add_argument_group("Help")
     help_group.add_argument("-h", "--help", action="help",

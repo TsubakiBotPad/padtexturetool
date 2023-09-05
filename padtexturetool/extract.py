@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import zipfile
-from pathlib import Path
 
 from .encoding import *
 from .texture_reader import extract_textures_from_binary_blob
