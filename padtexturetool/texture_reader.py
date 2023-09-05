@@ -42,6 +42,8 @@ encodings = {
     # Encoding 0xD is used for raw file data. Typically this JPEG data, but in
     # theory it could be anything.
     0xD: RAW,
+    # Encoding 0xF is a JPEG with an alpha mask.
+    0xF: AJPEG,
 }
 
 
@@ -71,64 +73,72 @@ def extract_textures_from_binary_blob(binary_blob: bytes) -> Tuple[List[Texture]
     is_animated = False
     while (offset + texture_block_header_size) < len(binary_blob):
         magic_string, number_of_textures_in_block = struct.unpack_from(texture_block_header_format, binary_blob, offset)
-        if magic_string == unencrypted_texture_magic_string:
-            texture_block_header_start = offset
-            texture_block_header_end = texture_block_header_start + texture_block_header_size
+        texture_block_header_start = offset
+        texture_block_header_end = texture_block_header_start + texture_block_header_size
 
-            for texture_manifest_index in range(0, number_of_textures_in_block):
-                texture_manifest_start = texture_block_header_end + (texture_manifest_size * texture_manifest_index)
-                texture_manifest_end = texture_manifest_start + texture_manifest_size
-
-                starting_offset, width, height, name = struct.unpack(
-                    texture_manifest_format, binary_blob[texture_manifest_start:texture_manifest_end])
-
-                encoding_identifier = (width >> 12)
-                width = width & 0x0FFF
-                height = height & 0x0FFF
-
-                if encoding_identifier in encodings:
-                    encoding = encodings[encoding_identifier]
-                else:
-                    encoding = RAW
-                    logging.warning("{name} is encoded with unrecognized encoding \"{encoding}\".".format(
-                        name=name, encoding=re.sub(r'^(-?0X)', lambda x: x.group(1).lower(),
-                                                   hex(encoding_identifier).upper())))
-
-                byte_count = 0
-                if (encoding != RAW):
-                    byte_count = (width * height * encoding.stride_in_bits) // 8
-                else:
-                    name, byte_count = struct.unpack("<20sI", name)
-
-                if byte_count <= 0:
-                    logging.warning(f"{name} has no associated image data.")
-
-                name = name.rstrip(b'\0').decode(encoding='UTF-8')
-
-                image_data_start = texture_block_header_start + starting_offset
-
-                # PVR encodings are prefixed by a 52-byte header whose purpose is not yet clear.
-                if encoding == PVRTC4BPP or encoding == PVRTC2BPP:
-                    image_data_start += 52
-
-                image_data_end = image_data_start + byte_count
-                offset = max(offset, image_data_end & ~(texture_block_header_alignment - 1))
-
-                # PVR encodings are followed by a 12-byte footer whose purpose is not yet clear.
-                if encoding == PVRTC4BPP or encoding == PVRTC2BPP:
-                    offset += 12
-
-                # MONS images mostly have size data in their footer, use this for trimming
-                given_width, given_height = 0, 0
-                if encoding == R4G4B4A4 and len(binary_blob) >= offset + 16:
-                    # 8 bytes of idk perhaps image size | img width | img height | # of frames | idk maybe palette related
-                    _, given_width, given_height, _, _ = struct.unpack('<8sHHHH', binary_blob[offset:offset + 16])
-                if not given_width or not given_height:
-                    # if either dimension is 0, use the full image size instead
-                    given_width, given_height = width, height
-                textures.append(Texture(width, height, name, binary_blob[image_data_start:image_data_end], encoding,
-                                        min(width, given_width), min(height, given_height)))
+        if magic_string != unencrypted_texture_magic_string:
+            offset += texture_block_header_alignment
+            continue
         elif magic_string == b"ISC":
             is_animated = True
+            offset += texture_block_header_alignment
+            continue
+
+        for texture_manifest_index in range(0, number_of_textures_in_block):
+            texture_manifest_start = texture_block_header_end + (texture_manifest_size * texture_manifest_index)
+            texture_manifest_end = texture_manifest_start + texture_manifest_size
+
+            starting_offset, width, height, name = struct.unpack(
+                texture_manifest_format, binary_blob[texture_manifest_start:texture_manifest_end])
+
+            encoding_identifier = (width >> 12)
+            width = width & 0x0FFF
+            height = height & 0x0FFF
+
+            if encoding_identifier in encodings:
+                encoding = encodings[encoding_identifier]
+            else:
+                encoding = RAW
+                logging.warning("{name} is encoded with unrecognized encoding \"{encoding}\".".format(
+                    name=name, encoding=re.sub(r'^(-?0X)', lambda x: x.group(1).lower(),
+                                               hex(encoding_identifier).upper())))
+
+            image_data_start = texture_block_header_start + starting_offset
+
+            byte_count = 0
+            if encoding == RAW:
+                name, byte_count = struct.unpack("<20sI", name)
+            elif encoding == AJPEG:
+                byte_count = (int.from_bytes(binary_blob[image_data_start+4:image_data_start+8], byteorder='little')
+                              + width * height)
+            else:
+                byte_count = (width * height * encoding.stride_in_bits) // 8
+
+            if byte_count <= 0:
+                logging.warning(f"{name} has no associated image data.")
+
+            name = name.rstrip(b'\0').decode(encoding='UTF-8')
+
+            # PVR encodings are prefixed by a 52-byte header whose purpose is not yet clear.
+            if encoding == PVRTC4BPP or encoding == PVRTC2BPP:
+                image_data_start += 52
+
+            image_data_end = image_data_start + byte_count
+            offset = max(offset, image_data_end & ~(texture_block_header_alignment - 1))
+
+            # PVR encodings are followed by a 12-byte footer whose purpose is not yet clear.
+            if encoding == PVRTC4BPP or encoding == PVRTC2BPP:
+                offset += 12
+
+            # MONS images mostly have size data in their footer, use this for trimming
+            given_width, given_height = 0, 0
+            if encoding == R4G4B4A4 and len(binary_blob) >= offset + 16:
+                # 8 bytes of idk perhaps image size | img width | img height | # of frames | idk maybe palette related
+                _, given_width, given_height, _, _ = struct.unpack('<8sHHHH', binary_blob[offset:offset + 16])
+            if not given_width or not given_height:
+                # if either dimension is 0, use the full image size instead
+                given_width, given_height = width, height
+            textures.append(Texture(width, height, name, binary_blob[image_data_start:image_data_end], encoding,
+                                    min(width, given_width), min(height, given_height)))
         offset += texture_block_header_alignment
     return textures, is_animated

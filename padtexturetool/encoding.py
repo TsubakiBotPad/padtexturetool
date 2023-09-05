@@ -22,6 +22,7 @@ L8 = Encoding([8])
 RAW = Encoding()
 PVRTC4BPP = Encoding([4])
 PVRTC2BPP = Encoding([2])
+AJPEG = Encoding()
 
 __all__ = [
     "R8G8B8A8",
@@ -32,4 +33,5 @@ __all__ = [
     "RAW",
     "PVRTC4BPP",
     "PVRTC2BPP",
+    "AJPEG",
 ]

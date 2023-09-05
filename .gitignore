@@ -5,5 +5,5 @@
 
 dist/*
 build/*
-tsutils.egg-info/*
+padtexturetool.egg-info/*
 .DS_Store
