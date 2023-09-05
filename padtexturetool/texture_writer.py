@@ -1,9 +1,14 @@
 # Build the bit-depth conversion table
 import io
 import itertools
+import logging
 import os
-import png
+import time
 
+import png
+from PIL import Image
+
+import numpy as np
 from crc import Calculator, Crc32
 
 from .encoding import *
@@ -68,25 +73,38 @@ def blacken_transparent_pixels(flat_pixel_array, width, height, channels):
 
 
 def unpack_pixels(texture, target_bit_depth):
-    bits_per_channel = texture.encoding.channels
+    if texture.encoding is AJPEG:
+        jpeg_end = int.from_bytes(texture.buffer[4:8], byteorder="little")
+        jpeg_data = texture.buffer[8:jpeg_end]
+        alpha_data = bytearray(texture.buffer[jpeg_end:])
+        alpha_data = np.array([alpha_data[x:x + texture.width] for x in range(0, len(alpha_data), texture.width)])
 
-    bit_shifts = [sum(bits_per_channel[channel_index + 1:])
-                  for channel_index, channel_bit_count in enumerate(bits_per_channel)]
-    bit_masks = [(((2 ** bit_count) - 1) << bit_shift)
-                 for bit_count, bit_shift in zip(bits_per_channel, bit_shifts)]
-    conversion_tables = [bit_depth_conversion_table[current_bit_count][target_bit_depth]
-                         for current_bit_count in bits_per_channel]
+        img = Image.open(io.BytesIO(jpeg_data))
+        alpha = Image.fromarray(alpha_data)
+        img.putalpha(alpha)
 
-    return [conversion_table[(packed_pixel_value & bit_mask) >> bit_shift]
-            for packed_pixel_value in texture.packed_pixels
-            for bit_shift, bit_mask, conversion_table in zip(bit_shifts, bit_masks, conversion_tables)]
+        texture.encoding = R4G4B4A4
+
+        return list(img.tobytes())
+    else:
+        bits_per_channel = texture.encoding.channels
+
+        bit_shifts = [sum(bits_per_channel[channel_index + 1:])
+                      for channel_index, channel_bit_count in enumerate(bits_per_channel)]
+        bit_masks = [(((2 ** bit_count) - 1) << bit_shift)
+                     for bit_count, bit_shift in zip(bits_per_channel, bit_shifts)]
+        conversion_tables = [bit_depth_conversion_table[current_bit_count][target_bit_depth]
+                             for current_bit_count in bits_per_channel]
+
+        return [conversion_table[(packed_pixel_value & bit_mask) >> bit_shift]
+                for packed_pixel_value in texture.packed_pixels
+                for bit_shift, bit_mask, conversion_table in zip(bit_shifts, bit_masks, conversion_tables)]
 
 
 def export_to_image_file(texture, output_file_path, settings):
     binary_file_data = bytes()
     if texture.encoding is RAW:
         binary_file_data = texture.buffer
-
     else:
         width, height = texture.width, texture.height
         target_bit_depth = 8
@@ -145,7 +163,7 @@ def export_to_image_file(texture, output_file_path, settings):
             png_file_byte_array = bytearray(png_stream.getvalue())
             # Turn the text into a PNG tEXt chunk (size + data + checksum)
             data = b'tEXtSoftware\0' + software_text
-            penultimate_chunk = (len(data)-4).to_bytes(4, 'big') + data + CRC32.checksum(data).to_bytes(4, 'big')
+            penultimate_chunk = (len(data) - 4).to_bytes(4, 'big') + data + CRC32.checksum(data).to_bytes(4, 'big')
             binary_file_data = bytes(
                 png_file_byte_array[:-final_chunk_size]) + penultimate_chunk + bytes(
                 png_file_byte_array[-final_chunk_size:])
